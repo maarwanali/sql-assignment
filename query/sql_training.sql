@@ -79,6 +79,22 @@ WHERE
 ORDER BY title;
 -- END
 
+-- START
+SELECT 
+	f.film_id,
+	f.title
+FROM 
+	film f
+WHERE NOT EXISTS (
+	SELECT 
+		1
+	FROM 
+		inventory i 
+	WHERE 
+		f.film_id = i.film_id
+);
+-- END
+
 /*
 Output the top 3 actors who have appeared the most in movies in the “Children” category.
 If several actors have the same number of movies, output all of them.
@@ -144,7 +160,9 @@ Output the category of movies that have the highest number of total rental hours
 Do the same for cities that have a “-” in them. Write everything in one query.
 */
 -- START
+
 WITH category_rent_hours AS  ( 
+
 	SELECT
 		c.city, 
 		ca.name as category_name,
@@ -158,7 +176,7 @@ WITH category_rent_hours AS  (
 	JOIN
 		address ad ON cu.address_id = ad.address_id
 	JOIN 
-		city C ON c.city_id = ad.city_id
+		city c ON c.city_id = ad.city_id
 	JOIN 
 		inventory i ON r.inventory_id = i.inventory_id
 	JOIN 
@@ -166,40 +184,50 @@ WITH category_rent_hours AS  (
 	JOIN  
 		category ca ON ca.category_id = fc.category_id
 	GROUP BY 
-		ca.name, c.city
+		c.city, ca.name
+
 ),
 cities_starts_with_a AS (
 
 	SELECT 
-		'Cities Starting with a' as group_description, 
-		city, category_name, 
-		total_rent_hours,
-		ROW_NUMBER() OVER(ORDER BY total_rent_hours DESC) as rn
+		'Category in cities with a' as group_description, 
+		category_name, 
+		SUM(total_rent_hours) as total_rent_hours,
+		ROW_NUMBER() OVER(ORDER BY SUM(total_rent_hours) DESC) as rn
 	FROM 
 		category_rent_hours 
 	WHERE 
-		city ILIKE 'a%' ),
+		category_name ILIKE 'a%' 
+	GROUP BY
+		category_name
+		),
 cities_with_dash AS
 (
 		SELECT 
-		'Cities have "-".' as group_description, 
-		city, category_name, 
-		total_rent_hours,
-		ROW_NUMBER() OVER(ORDER BY total_rent_hours DESC) as rn
+		'Category in cities with have "-".' as group_description, 
+		category_name, 
+		SUM(total_rent_hours) as total_rent_hours,
+		ROW_NUMBER() OVER(ORDER BY SUM(total_rent_hours) DESC) as rn
 	FROM 
 		category_rent_hours 
 	WHERE 
 		city LIKE '%-%' 
+	GROUP BY
+		category_name
 )
 SELECT 
-	group_description, city, category_name, total_rent_hours
+	group_description, 
+	category_name, 
+	total_rent_hours
 FROM 
 	cities_starts_with_a
 WHERE
 	rn = 1
 UNION ALL
 SELECT 
-	group_description, city, category_name, total_rent_hours
+	group_description, 
+	category_name, 
+	total_rent_hours
 FROM 
 	cities_with_dash
 WHERE
