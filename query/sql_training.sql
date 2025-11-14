@@ -161,6 +161,7 @@ Do the same for cities that have a “-” in them. Write everything in one quer
 */
 -- START
 
+
 WITH category_rent_hours AS  ( 
 
 	SELECT
@@ -191,32 +192,31 @@ cities_starts_with_a AS (
 
 	SELECT 
 		'Category in cities with a' as group_description, 
+		city,
 		category_name, 
-		SUM(total_rent_hours) as total_rent_hours,
-		ROW_NUMBER() OVER(ORDER BY SUM(total_rent_hours) DESC) as rn
+		total_rent_hours,
+		RANK() OVER(PARTITION BY city ORDER BY total_rent_hours DESC) as rn
 	FROM 
 		category_rent_hours 
 	WHERE 
 		category_name ILIKE 'a%' 
-	GROUP BY
-		category_name
 		),
 cities_with_dash AS
 (
 		SELECT 
 		'Category in cities with have "-".' as group_description, 
+		city,
 		category_name, 
-		SUM(total_rent_hours) as total_rent_hours,
-		ROW_NUMBER() OVER(ORDER BY SUM(total_rent_hours) DESC) as rn
+		total_rent_hours,
+		RANK() OVER(PARTITION BY city ORDER BY total_rent_hours DESC) as rn
 	FROM 
 		category_rent_hours 
 	WHERE 
 		city LIKE '%-%' 
-	GROUP BY
-		category_name
 )
 SELECT 
 	group_description, 
+	city,
 	category_name, 
 	total_rent_hours
 FROM 
@@ -226,11 +226,12 @@ WHERE
 UNION ALL
 SELECT 
 	group_description, 
+	city,
 	category_name, 
 	total_rent_hours
 FROM 
 	cities_with_dash
 WHERE
-	rn = 1;
+	rn = 1
 
 -- END
